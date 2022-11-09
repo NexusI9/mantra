@@ -1,23 +1,24 @@
-import logo from './logo.svg';
-import './App.css';
+import './sheet.scss';
+import { Homepage, Reader, Settings } from './components';
+import { useState, useEffect } from 'react';
+
 
 function App() {
+
+  const [url, setUrl] = useState();
+  const [theme, setTheme] = useState('white');
+
+  useEffect( () => {
+
+    document.querySelector('body').setAttribute('data-theme', theme);
+
+  }, [theme]);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div id="wrapper">
+      {!url && <Homepage onSubmit={ (e) => setUrl(e) } /> }
+      {url && <Reader url={url} /> }
+      {url && <Settings onChangeTheme={ (e) => setTheme(e) } /> }
     </div>
   );
 }
