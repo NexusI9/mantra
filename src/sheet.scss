@@ -9,10 +9,16 @@ $dark:#17181A;
 $alice:aliceblue;
 $void:black;
 
+html{
+    overflow: hidden;
+}
 
 body{
   transition: background, color, 0.25s ease-out;
   font-family: 'Lato', sans-serif;
+  position: relative;
+  margin: 0;
+  padding: 0;
 
   &[data-theme='white']{
     background: #e4e4e4;
@@ -55,37 +61,12 @@ input[type='text']{
 #home{
   background: $dark;
   height: 100vh;
-
-  #painting{
-    pointer-events: none;
-    width: 100%;
-    height: 100%;
+  width: 100vw;
+  overflow: hidden;
+  img{
     position: absolute;
-    top: 0;
-    left: 0;
-    img{
-      position: absolute;
-      &[data-type='cloud']{
-        &:first-of-type{
-          top: 0;
-          left: 0;
-          transform: translateX(-30%);
-        }
-        &:not(:first-of-type){
-          top: 0;
-          right: 0;
-          transform: translateX(30%) scaleX(-1);
-        }
-      }
-      &[data-type='sand']{
-        bottom: 0;
-        width: 100%;
-      }
-      &[data-type='smoke']{
-        left: 10%;
-        top: 20%;
-      }
-    }
+    object-fit: cover;
+    width: 100%;
   }
   #urlContent{
     position: relative;
@@ -105,7 +86,7 @@ input[type='text']{
       align-items: center;
       justify-content: center;
       column-gap: 10px;
-
+      margin-bottom: 100px;
       input[type='text']{
         min-width: 30vw;
         margin-right: 10px;
@@ -121,9 +102,18 @@ input[type='text']{
   position: fixed;
   top: 0;
   right: 0;
-  margin: 20px;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  pointer-events: none;
 
+  & > *{
+    pointer-events: auto;
+  }
   .theme_select{
+    position: absolute;
     display: flex;
     flex-direction: row;
 
@@ -137,6 +127,15 @@ input[type='text']{
       border-radius: 100%;
       cursor: pointer;
 
+    }
+  }
+  .para_change{
+    position: absolute;
+    bottom: 30px;
+    button{
+      width: 50px;
+      height: 50px;
+      margin-right: 12px;
     }
   }
 }
@@ -166,4 +165,35 @@ input[type='text']{
   .paragraph{
     margin-bottom: 200px;
   }
+}
+
+@media only screen and (max-width: 800px) {
+
+  #home{
+    #painting{
+      img{
+        &[data-type='cloud']{
+          &:first-of-type{ transform: translateX(-70%); }
+          &:not(:first-of-type){ transform: translateX(70%) scaleX(-1); }
+        }
+      }
+    }
+  }
+
+}
+
+
+@media only screen and (max-width: 450px) {
+
+  #scene{
+    padding: 0 10%;
+    top:35%;
+  }
+
+    #urlContent{
+      #maininput{
+        input[type='text']{ min-width: 60vw; }
+      }
+    }
+
 }
