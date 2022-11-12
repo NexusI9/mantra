@@ -475,7 +475,10 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
       fetch(url).then(res => res.text()).then(body => {
 
         //get all paragraphs
-        let pr = body.match(/(?<=<p>)(.*?)(?=<\/p>)/g);
+        let pr = body.match(/<p>(.*?)<\/p>/g).map( (val) => {
+          return val.replace(/<\/?p>/g,''); 
+        });
+
 
         //remove space & residual inline tag
         pr = pr.map( item => item.trim().replace(/<(.*?)>/g, '') );
