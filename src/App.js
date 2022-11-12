@@ -16,11 +16,9 @@ function App() {
     document.querySelector('body').setAttribute('data-theme', theme);
     if(searchParams.get('article')){ setUrl(searchParams.get('article'));  }
     if(url){ setSearchParams({article:url}); }
-    if(translation){
-      console.log(translation);
-    }
 
-  }, [theme, url, translation]);
+
+  }, [theme, url]);
 
   return (
       <div id="wrapper">

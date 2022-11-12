@@ -85,47 +85,44 @@ export const PopUp = ({words, onQuit = (e) => e }) => {
 
 export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, setTimer = true }) => {
 
-  const [content, setContent] = useState();
-  const [para, setPara] = useState();
-  const [activePara, setActivePara] = useState(-1);
-  const [needle, setNeedle] = useState(0);
+  //paragraph
+  const [para, setPara] = useState(); //array of paragraph
   const listPara = useRef([]);
 
   let running = false;
   let timeout = null;
   let mouseTimer;
 
-  let activeSentence = null;
-  let activeSentIndex = 0;
+  let activeSentence = useRef({item:null, index:0});
+  let activeParagraph = useRef({item: null, index:-1});
 
-  let activeParagraph = null;
-  let activeParaIndex = -1;
+  const readParagraph = ({paragraph, index=0}) => {
 
-  const read = (paragraph, index=0) => {
+      if(!paragraph){ return; }
 
-      if(!paragraph){return;}
       clearTimeout(timeout);
       //Set globals for mousemove
-      activeParagraph = paragraph;
-      activeSentIndex = index;
+      activeParagraph.current.item = paragraph;
 
       //remove all active sentences
       const element = document.getElementsByClassName('sentence');
       for(var sent of element){ sent.classList.remove('active'); }
 
       //set new active sentences
-      activeSentence = paragraph.sentences[index];
-      activeSentence.classList.add('active');
-      window.scrollTo({top: activeSentence.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
+      activeSentence.current = {item: paragraph.sentences[index], index: index};
+      console.log(activeSentence.current);
 
-      const during = activeSentence.innerHTML.length * secPerWords * 1000 > 3000 ? activeSentence.innerHTML.length * secPerWords * 1000 : 3000;
+      activeSentence.current.item.classList.add('active');
+      window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
+      const during = activeSentence.current.item.innerHTML.length * secPerWords * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * secPerWords * 1000 : 3000;
 
       timeout = setTimeout( () => {
         clearTimeout(timeout);
         //loop through paragraph, if end of array return to 0
-        if( index+1 === paragraph.sentences.length ){ read(paragraph, 0 ); }
-        else{ read(paragraph, index+1 ); }
+        if( index+1 === paragraph.sentences.length ){ readParagraph({paragraph: paragraph, index: 0 }); }
+        else{ readParagraph({paragraph: paragraph, index: index+1 }); }
       }, during);
+
   }
 
 
@@ -147,45 +144,30 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
     loadDictData().then( res => dico = new ZhongwenDictionary(res[0], res[1], grammarKeywords) );
 
     //--Utilities--
-    const urlToHtml = (url) => {
-
-      fetch(url).then(res => res.text()).then(body => {
-        //get all paragraphs
-        let pr = body.match(/(?<=<p>)(.*?)(?=<\/p>)/g);
-        //filter empty indexex
-        pr = pr.filter(entry => entry.trim() != '');
-        //remove space & residual inline tag
-        pr = pr.map( item => item.trim().replace(/<(.*?)>/g, '') );
-        //separate sentences within paragraphs
-        //pr = pr.map( item => item.split('，') );
-        pr = pr.map( item => item.split(/。|、|！|，/gm) );
-
-        //listPara.current = listPara.current.slice(0, pr.length);
-        listPara.current = pr.map( item => Object.assign({ paragraph:null, sentences:[] }) );
-        setPara(pr);
-      });
-    }
     const switchParagraph = (type) => {
       clearAllTimers();
 
+      if(!para){ return console.warn('no paragraph to read'); }
+
       switch(type){
         case 'next':
-          activeSentIndex = 0;
-          if(para){ activeParaIndex = (activeParaIndex+1 === para.length) ? 0 : activeParaIndex+1; }
-          else{ activeParaIndex++; }
+          activeSentence.current.index = 0;
+          activeParagraph.current.index = (activeParagraph.current.index+1 === para.length) ? 0 : activeParagraph.current.index+1;
         break;
 
         case 'prev':
-          activeSentIndex = 0;
-          if(para){ activeParaIndex = (activeParaIndex-1 < 0) ? 0 : activeParaIndex-1; }
-          else{ activeParaIndex--; }
+          activeSentence.current.index = 0;
+          activeParagraph.current.index = (activeParagraph.current.index-1 < 0) ? 0 : activeParagraph.current.index-1;
         break;
 
         default: //resume reading
 
       }
 
-      setTimer() && read(listPara.current[activeParaIndex]);
+      setTimer() && readParagraph({
+        paragraph: listPara.current[activeParagraph.current.index], 
+        index: activeSentence.current.index
+      });
     }
     const onResult = (result) => {
         onTranslate(result);
@@ -194,8 +176,28 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
       clearTimeout(mouseTimer)
       clearTimeout(timeout);
     }
+    const urlToHtml = (url) => new Promise( (resolve) => {
 
+      fetch(url).then(res => res.text()).then(body => {
 
+        //get all paragraphs
+        let pr = body.match(/(?<=<p>)(.*?)(?=<\/p>)/g);
+
+        //remove space & residual inline tag
+        pr = pr.map( item => item.trim().replace(/<(.*?)>/g, '') );
+
+        //filter empty indexex
+        pr = pr.filter(entry => entry.trim() !== '' );
+
+        //separate sentences within paragraphs
+        pr = pr.map( item => item.split(/。|、|！|，/gm) );
+
+        //listPara.current = listPara.current.slice(0, pr.length);
+        listPara.current = pr.map( item => Object.assign({ paragraph:null, sentences:[] }) ); //fill empty
+        resolve(pr);
+      });
+
+    });
 
     //---Events---
     const preventScroll = (e) => {
@@ -363,7 +365,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
       }
     const onMouseMove = (e) => {
       clearAllTimers();
-      mouseTimer = setTimeout(() => setTimer() && read(activeParagraph, activeSentIndex), 300);
+      mouseTimer = setTimeout(() => setTimer() && readParagraph({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
     }
 
     window.addEventListener('touchmove',preventScroll,false);
@@ -373,12 +375,11 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mousedown', onMouseDown);
 
-    urlToHtml(url);
+    if(!para){ urlToHtml(url).then( result => setPara(result) );  }
 
     if( !setTimer() ){ clearAllTimers(); }
-    else if( setTimer() && para ){ switchParagraph(); }
+    else if( setTimer() ){ switchParagraph(); }
 
-    console.log({timer:setTimer()});
 
     return () => {
         window.removeEventListener('touchmove',preventScroll,false);
@@ -386,21 +387,19 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mousedown', onMouseDown);
-
         clearAllTimers();
     }
 
-  }, [url, setTimer]);
+
+  }, [para, setTimer()]);
 
   return(
     <div id='scene'>
-      {
-        para && para.map( (paragraphs,p) =>
+      { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
               { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className='sentence' key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }
             </div>
-        )
-     }
+      )}
     </div>
   );
 }
