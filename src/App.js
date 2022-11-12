@@ -23,7 +23,7 @@ function App() {
   return (
       <div id="wrapper">
         {!url && <Homepage onSubmit={ (e) => setUrl(e) } /> }
-        {url && <Reader url={url} onTranslate={ e => setTranslation(e) } setTimer={ () => translation === null } /> }
+        {url && <Reader url={url} onTranslate={ e => setTranslation(e) } globalTimer={ translation === null } /> }
         {url && <Settings onChangeTheme={ (e) => setTheme(e) } onPrevParagraph = { () => 0 } onNextParagraph= { () => 0}/> }
         {translation && <PopUp words={translation} onQuit={ () => setTranslation(null) }/>}
       </div>

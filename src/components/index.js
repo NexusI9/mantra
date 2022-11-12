@@ -6,7 +6,7 @@ import grammarKeywords from '../data/grammarKeywordsMin.json';
 import ZhongwenDictionary from '../lib/zhongwendico.js';
 import { toZhuyin } from '../lib/pinyin-to-zhuyin.js';
 import { PinyinConverter } from '../lib/pinyin_converter.js';
-
+import { useDoubleTap } from 'use-double-tap';
 
 export const Homepage = ({onSubmit = (e) => e}) => {
 
@@ -83,49 +83,34 @@ export const PopUp = ({words, onQuit = (e) => e }) => {
     </div>);
 }
 
-export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, setTimer = true }) => {
+export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, globalTimer = true }) => {
 
   //paragraph
-  const [para, setPara] = useState(); //array of paragraph
-  const listPara = useRef([]);
 
-  let running = false;
-  let timeout = null;
-  let mouseTimer;
+  const [para, setPara] = useState(); //array of paragraph
+  const [activeTimer, setActiveTimer] = useState(globalTimer);
+  const [manual, setManual] = useState();
+  const listPara = useRef([]);
 
   let activeSentence = useRef({item:null, index:0});
   let activeParagraph = useRef({item: null, index:-1});
 
-  const readParagraph = ({paragraph, index=0}) => {
-
-      if(!paragraph){ return; }
-
-      clearTimeout(timeout);
-      //Set globals for mousemove
-      activeParagraph.current.item = paragraph;
-
-      //remove all active sentences
-      const element = document.getElementsByClassName('sentence');
-      for(var sent of element){ sent.classList.remove('active'); }
-
-      //set new active sentences
-      activeSentence.current = {item: paragraph.sentences[index], index: index};
-      console.log(activeSentence.current);
-
-      activeSentence.current.item.classList.add('active');
-      window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
-      const during = activeSentence.current.item.innerHTML.length * secPerWords * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * secPerWords * 1000 : 3000;
-
-      timeout = setTimeout( () => {
-        clearTimeout(timeout);
-        //loop through paragraph, if end of array return to 0
-        if( index+1 === paragraph.sentences.length ){ readParagraph({paragraph: paragraph, index: 0 }); }
-        else{ readParagraph({paragraph: paragraph, index: index+1 }); }
-      }, during);
-
+  const touchPos = (e) => {
+    if(e.clientY < window.innerHeight/2){ return 'top'; }
+    else{ return 'bottom'; }
   }
 
-
+  const doubleTap = useDoubleTap( e => {
+    // on Double tap
+    if(touchPos(e) === 'top'){ setManual({item:'paragraph', direction:'prev'}); }
+    else{ setManual({item:'paragraph', direction:'next'});  }
+  }, 300, {
+    //on Single tap
+    onSingleTap: (e) => {
+      if(touchPos(e) === 'top'){ setManual({item:'sentence', direction:'prev'}); }
+      else{ setManual({item:'sentence', direction:'next'}); }
+    }
+  });
   useEffect(() => {
 
     //--dico--
@@ -143,37 +128,91 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
     }
     loadDictData().then( res => dico = new ZhongwenDictionary(res[0], res[1], grammarKeywords) );
 
-    //--Utilities--
-    const switchParagraph = (type) => {
+    //--Reader--
+    let timeout, mouseTimer;
+    const prevNext = ({item='', direction=''}) => {
+      /*Basically allows to loop if index > length and simplify the reading process (switching to next / prev paragraph || sentence)*/
       clearAllTimers();
-
       if(!para){ return console.warn('no paragraph to read'); }
 
-      switch(type){
-        case 'next':
-          activeSentence.current.index = 0;
-          activeParagraph.current.index = (activeParagraph.current.index+1 === para.length) ? 0 : activeParagraph.current.index+1;
+      switch(item){
+
+        case 'paragraph':
+
+            switch(direction){
+              case 'next':
+                activeSentence.current.index = 0; //reset sentence index
+                activeParagraph.current.index = (activeParagraph.current.index+1 === para.length) ? 0 : activeParagraph.current.index+1;
+              break;
+
+              case 'prev':
+                activeSentence.current.index = 0; //reset sentence index
+                activeParagraph.current.index = (activeParagraph.current.index-1 < 0) ? 0 : activeParagraph.current.index-1;
+              break;
+            }
+
         break;
 
-        case 'prev':
-          activeSentence.current.index = 0;
-          activeParagraph.current.index = (activeParagraph.current.index-1 < 0) ? 0 : activeParagraph.current.index-1;
+        case 'sentence':
+
+          switch(direction){
+
+            case 'next':
+                activeSentence.current.index = ( activeSentence.current.index+1 === listPara.current[activeParagraph.current.index]?.sentences.length  )  ? 0 : activeSentence.current.index+1;
+            break;
+
+            case 'prev':
+                activeSentence.current.index = ( activeSentence.current.index-1 < 0 )  ? 0 : activeSentence.current.index-1;
+            break;
+
+          }
+
         break;
 
-        default: //resume reading
+        default:  //resume default if no parameters
 
       }
 
-      setTimer() && readParagraph({
-        paragraph: listPara.current[activeParagraph.current.index], 
+      activeTimer && read({
+        paragraph: listPara.current[activeParagraph.current.index],
         index: activeSentence.current.index
       });
     }
+
+    const read = ({paragraph, index=0}) => {
+
+        if(!paragraph){ return; }
+
+        clearTimeout(timeout);
+        //Set globals for mousemove
+        activeParagraph.current.item = paragraph;
+
+        //remove all active sentences
+        const element = document.getElementsByClassName('sentence');
+        for(var sent of element){ sent.classList.remove('active'); }
+
+        //set new active sentences
+        activeSentence.current = {item: paragraph.sentences[index], index: index};
+
+        activeSentence.current.item.classList.add('active');
+        window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
+        const during = activeSentence.current.item.innerHTML.length * secPerWords * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * secPerWords * 1000 : 3000;
+
+        timeout = setTimeout( () => {
+          clearTimeout(timeout);
+          //loop through paragraph, if end of array return to 0
+          if( index+1 === paragraph.sentences.length ){ read({paragraph: paragraph, index: 0 }); }
+          else{ read({paragraph: paragraph, index: index+1 }); }
+        }, during);
+
+    }
+
+    //--Utilities--
     const onResult = (result) => {
         onTranslate(result);
     }
     const clearAllTimers = () => {
-      clearTimeout(mouseTimer)
+      clearTimeout(mouseTimer);
       clearTimeout(timeout);
     }
     const urlToHtml = (url) => new Promise( (resolve) => {
@@ -198,21 +237,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
       });
 
     });
-
-    //---Events---
-    const preventScroll = (e) => {
-      e.stopPropagation();
-    }
-    const onKeyDown = (e) => {
-
-      switch(e.key){
-          case 'Enter':
-              switchParagraph('next');
-          break;
-
-      }
-    }
-    const onMouseDown = (e) => {
+    const startTranslation = (e) => {
 
       if(!dico){ return; }
 
@@ -323,6 +348,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
       let rangeNode;
       let rangeOffset;
 
+
       if(document.caretRangeFromPoint){
         range = document.caretRangeFromPoint(e.clientX, e.clientY);
         if (range === null) { return; }
@@ -362,23 +388,66 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
            if(result){ onResult(result); }
         }
 
+
+    }
+
+    //---Events---
+    const preventScroll = (e) => {
+      e.stopPropagation();
+    }
+    const onKeyDown = (e) => {
+
+      switch(e.key){
+          case 'Enter':
+              prevNext({item:'paragraph', direction: 'next'});
+          break;
+
+      }
+    }
+    const onMouseDown = (e) => {
+
+      switch(e.target.nodeName){
+
+        case 'P':
+          startTranslation(e); //translate pointed words
+        break;
+
+        default:
+          setActiveTimer(false);
+
+      }
+
+
       }
     const onMouseMove = (e) => {
       clearAllTimers();
-      mouseTimer = setTimeout(() => setTimer() && readParagraph({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
+      mouseTimer = setTimeout(() => activeTimer && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
+    }
+    const onMouseUp = (e) => {
+      setActiveTimer(true);
     }
 
+    //---mouse: move---
     window.addEventListener('touchmove',preventScroll,false);
     window.addEventListener('scroll',preventScroll,false);
-
-    window.addEventListener('keydown', onKeyDown);
     window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mousedown', onMouseDown);
+
+    //---mouse: down---
+    //window.addEventListener('touchstart', onMouseDown);
+
+    //---mouse: up---
+    //window.addEventListener('touchend', onMouseUp);
+
+    //---keyboard---
+    window.addEventListener('keydown', onKeyDown);
 
     if(!para){ urlToHtml(url).then( result => setPara(result) );  }
 
-    if( !setTimer() ){ clearAllTimers(); }
-    else if( setTimer() ){ switchParagraph(); }
+    if( !activeTimer ){ clearAllTimers(); }
+    else{
+      prevNext(manual || {});
+    }
+
 
 
     return () => {
@@ -386,18 +455,19 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
         window.removeEventListener('scroll',preventScroll,false);
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mousedown', onMouseDown);
+        //window.removeEventListener('touchstart', onMouseDown);
+        //window.removeEventListener('touchend', onMouseUp);
         clearAllTimers();
     }
 
 
-  }, [para, setTimer()]);
+  }, [para, activeTimer, manual]);
 
   return(
-    <div id='scene'>
+    <div id='scene' {...doubleTap}>
       { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
-              { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className='sentence' key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }
+              { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className={'sentence ' +( (p === activeParagraph.current.index && s === activeSentence.current.index) ? 'active' : '')} key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }
             </div>
       )}
     </div>
