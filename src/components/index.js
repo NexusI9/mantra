@@ -7,6 +7,12 @@ import ZhongwenDictionary from '../lib/zhongwendico.js';
 import { toZhuyin } from '../lib/pinyin-to-zhuyin.js';
 import { PinyinConverter } from '../lib/pinyin_converter.js';
 import { useDoubleTap } from 'use-double-tap';
+import { motion } from 'framer-motion';
+
+const SquareButton = ({name, label, onClick = () => 0}) => (
+  <button className='squareButton' onClick={onClick}>{label && label}{name && <span className='ico' data-name={name}></span>}</button>
+);
+
 
 export const Homepage = ({onSubmit = (e) => e}) => {
 
@@ -37,7 +43,11 @@ export const InputLink = ({onSubmit = (e) => e}) => {
 
 }
 
-export const Settings = ({onChangeTheme}) => {
+export const Settings = ({returnHome = () => 0, onQuit = () => 0, onStart = () => 1, onChangeSpeed, onChangeSize, onChangeTheme}) => {
+
+  const SettingsButton = ({onClick = (e) => e, name}) => (
+    <span className='ico' onClick={onClick} data-name={name}></span>
+  );
 
   const [expand, setExpand] = useState(false);
   const themeDot = [
@@ -55,17 +65,84 @@ export const Settings = ({onChangeTheme}) => {
     }
   ];
 
+  const sizeButton = [
+    {
+      label: '小',
+      size: 1.85
+    },
+    {
+      label: '中',
+      size: 2.5
+    },
+    {
+      label: '大',
+      size: 3
+    }
+  ];
+
+  const speedButton = [
+    {
+      name: 'turtle',
+      speed: 0.9
+    },
+    {
+      name: 'cat',
+      speed: 0.4
+    },
+    {
+      name: 'rabbit',
+      speed: 0.2
+    }
+  ];
+
+  useEffect(() => {
+
+
+    if(expand){ onStart(); }
+    else{ onQuit(); }
+
+  },[expand]);
+
    return(
      <div id="settings">
-      <div className="theme_select">
-        { themeDot.map(item => <span key={item.theme+"dot"} onClick={ () => onChangeTheme(item.theme) } style={{background:item.color}}></span> )}
-      </div>
+      <section id='settingsBar'>
+        <SettingsButton name='home' onClick={ returnHome }/>
+        <SettingsButton name='settings' onClick={ () => setExpand(true) }/>
+      </section>
 
+      {expand && <div id='settingsPanel'>
+          <div className='mock_background' onClick={ () => { onQuit(); setExpand(false); }}></div>
+          <div id='settings_list'>
+            <p className='label'><span className='ico' data-name='settings'></span> SETTINGS</p>
+            <div className="theme_select">
+              <p>Theme</p>
+              <section>
+              { themeDot.map(item => <span key={item.theme+"dot"} onClick={ () => onChangeTheme(item.theme) } style={{background:item.color}}></span> )}
+              </section>
+              <hr/>
+            </div>
+            <div className="size_select">
+              <p>Font size</p>
+              <section>
+              { sizeButton.map( item => <SquareButton key={item.label+'button'} label={item.label} onClick={ () => onChangeSize(item.size) }/> ) }
+              </section>
+              <hr/>
+            </div>
+            <div className="speed_select">
+              <p>Speed</p>
+              <section>
+              { speedButton.map( item => <SquareButton key={item.name+'button'} name={item.name} onClick={ () => onChangeSpeed(item.speed) }/> ) }
+              </section>
+              <hr/>
+            </div>
+          </div>
+        </div>
+      }
      </div>
    );
 }
 
-export const PopUp = ({words, onQuit = (e) => e }) => {
+export const PopUp = ({words, onQuit = () => 0 , onStart= () => 1}) => {
 
 
   const Box = ({word}) => (
@@ -73,22 +150,38 @@ export const PopUp = ({words, onQuit = (e) => e }) => {
         <p>{word.traditional || word.simplified} &nbsp; {word.pinyin.join(' ')} </p>
         <small>({word.zhuyin})</small>
         <p>{word.definition.join(' ; ')}</p>
+        <hr/>
     </section>
   )
 
-  return(<div id='popupTranslator' onClick={ onQuit }>
+  useEffect(() => {
+    onStart();
+  },[]);
+
+  return(
+    <div id='popupTranslator'
+    onClick={onQuit}
+    >
+      <motion.div
+        id='popupPanel'
+        drag='y'
+        dragConstraints={{top:-window.innerHeight/1.5, bottom:30}}
+        dragSnapToOrigin={false}
+      >
+      <span className='holder'></span>
       <div className='content'>
         { words.map(word => <Box key={word.definition} word={word}/> ) }
       </div>
+      </motion.div>
     </div>);
 }
 
-export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, globalTimer = true }) => {
+export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, lock = false }) => {
 
   //paragraph
 
   const [para, setPara] = useState(); //array of paragraph
-  const [activeTimer, setActiveTimer] = useState(globalTimer);
+  const [activeTimer, setActiveTimer] = useState(!lock);
   const [manual, setManual] = useState();
   const listPara = useRef([]);
 
@@ -337,7 +430,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
 
       }
 
-      activeTimer && read({
+      !lock && read({
         paragraph: listPara.current[activeParagraph.current.index],
         index: activeSentence.current.index
       });
@@ -360,7 +453,8 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
 
         activeSentence.current.item.classList.add('active');
         window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
-        const during = activeSentence.current.item.innerHTML.length * secPerWords * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * secPerWords * 1000 : 3000;
+        /*set minimum duration*/
+        const during = activeSentence.current.item.innerHTML.length * speed * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * speed * 1000 : 3000;
 
         timeout = setTimeout( () => {
           clearTimeout(timeout);
@@ -392,7 +486,8 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
         //separate sentences within paragraphs
         pr = pr.map( item => item.split(/。|、|！|，/gm) );
 
-        //listPara.current = listPara.current.slice(0, pr.length);
+        pr = pr.map( para => para.filter(entry => entry.trim() !== '' ) );
+
         listPara.current = pr.map( item => Object.assign({ paragraph:null, sentences:[] }) ); //fill empty
         resolve(pr);
       });
@@ -406,6 +501,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
     }
     const onKeyDown = (e) => {
 
+      if(lock){ return; }
       switch(e.key){
           case 'Enter':
               prevNext({item:'paragraph', direction: 'next'});
@@ -430,7 +526,7 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
       }
     const onMouseMove = (e) => {
       clearAllTimers();
-      mouseTimer = setTimeout(() => activeTimer && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
+      mouseTimer = setTimeout(() => !lock && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
     }
     const onMouseUp = (e) => {
       setActiveTimer(true);
@@ -452,11 +548,13 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
 
     if(!para){ urlToHtml(url).then( result => setPara(result) );  }
 
-    if( !activeTimer ){ clearAllTimers(); }
-    else{
-      prevNext(manual || {});
+    if(!lock){ prevNext(manual || {}); } //on unlocked: casual behavior
+    else{  //on lock : clear timeout and flush manual command
+      clearAllTimers();
+      if(manual){ setManual();  }
     }
 
+    console.log(speed);
 
 
     return () => {
@@ -470,10 +568,10 @@ export const Reader = ({url, secPerWords=0.4, fontSize=2.5, theme='white', onTra
     }
 
 
-  }, [para, activeTimer, manual]);
+  }, [para, manual, lock]);
 
   return(
-    <div id='scene' {...doubleTap}>
+    <div id='scene' {...doubleTap} style={{fontSize:`${fontSize}rem`}}>
       { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
               { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className={'sentence ' +( (p === activeParagraph.current.index && s === activeSentence.current.index) ? 'active' : '')} key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }

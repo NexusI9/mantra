@@ -33,7 +33,40 @@ body{
   &[data-theme='dark']{
     background: #17181a;
      color: aliceblue;
+    .ico{ background: $alice; }
   }
+
+}
+
+hr{
+  border-color: rgb(61, 61, 61);
+  width: 100%;
+}
+
+.ico{
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $dark;
+  margin: 0 5px;
+  position: relative;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size:contain;
+  background: $dark;
+  &[data-name='home']{ mask-image: url('./assets/home_icon.svg'); }
+  &[data-name='settings']{ mask-image: url('./assets/settings_icon.svg'); }
+  &[data-name='turtle']{ mask-image: url('./assets/turtle.svg'); }
+  &[data-name='cat']{ mask-image: url('./assets/cat.svg'); }
+  &[data-name='rabbit']{ mask-image: url('./assets/rabbit.svg'); }
+}
+
+.label{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 input{
@@ -56,6 +89,20 @@ input[type='text']{
       border: none;
       box-sizing: border-box;
       padding: 8px 12px;
+}
+
+button.squareButton {
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    background: antiquewhite;
+    margin: 0 5px;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    .ico{
+      margin: auto;
+    }
 }
 
 #home{
@@ -101,66 +148,147 @@ input[type='text']{
 #settings{
   position: fixed;
   top: 0;
-  right: 0;
   margin: 0;
-  height: 100%;
-  width: 100%;
   box-sizing: border-box;
   padding: 20px;
-  pointer-events: none;
+  max-width: 100vw;
+  max-height: 100vh;
+
+  #settingsBar{
+    display: flex;
+    margin: 10px;
+    position: relative;
+
+    span{
+      &.active{
+        background: $white;
+        &::before{
+          content: '';
+          position: absolute;
+          background: $dark;
+          border-radius: 100%;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+    }
+  }
+
+  #settingsPanel{
+    background: $dark;
+    box-sizing: border-box;
+    padding: 20px;
+    width: 90vw;
+    height: 85vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 5px rgb(15 18 28 / 20%);
+
+    .mock_background{
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #settings_list{
+      position: relative;
+      color: $white;
+      width: 100%;
+      height: 100%;
+
+      & > .label{
+        .ico{ background: $goldleaf;}
+        color: $goldleaf;
+        justify-content: center;
+        font-size: 24px;
+        margin: 10px 0;
+      }
+      & > div{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+
+        & > section{
+          display: flex;
+          flex-direction: row;
+          margin-bottom: 10px;
+        }
+
+      }
+      .theme_select{
+
+        span{
+          margin: 0 10px;
+          border: solid white 2px;
+          box-shadow: 0 3px 5px rgba(#000000, 0.20);
+          width: 30px;
+          height: 30px;
+          display: block;
+          border-radius: 100%;
+          cursor: pointer;
+
+        }
+      }
+
+    }
+  }
 
   & > *{
     pointer-events: auto;
   }
-  .theme_select{
-    position: absolute;
-    display: flex;
-    flex-direction: row;
 
-    span{
-      margin: 0 5px;
-      border: solid white 2px;
-      box-shadow: 0 3px 5px rgba(#000000, 0.20);
-      width: 30px;
-      height: 30px;
-      display: block;
-      border-radius: 100%;
-      cursor: pointer;
 
-    }
-  }
-  .para_change{
-    position: absolute;
-    bottom: 30px;
-    button{
-      width: 50px;
-      height: 50px;
-      margin-right: 12px;
-    }
-  }
 }
 
 #popupTranslator{
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.78);
-  display: flex;
+
   position: fixed;
-  top: 0;
-  left: 0;
-  align-items: flex-start;
-  justify-content: center;
-  overflow: auto;
+  display: inline-block;
+  width: 100vw;
+  height: 100vh;
+
+  #popupPanel{
+    width: 100%;
+    min-height: 100vh;
+    background: $dark;
+    margin-top: 5%;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    display: flex;
+    top: 75vh;
+    position: absolute;
+    left: 0;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: auto;
+    box-shadow: 0 -4px 5px rgb(15 18 28 / 20%);
+    flex-direction: column;
+  }
+  .holder{
+    width: 70px;
+    height: 8px;
+    border-radius: 10em;
+    background: $white;
+    display: block;
+    margin-top: 20px;
+  }
 
   .content{
     width: 100%;
     color: white;
     box-sizing: border-box;
     padding: 20px;
+    padding-top: 5px;
+
     & > section{
       box-sizing: border-box;
-      padding: 10px 30px;
-      background: $dark;
+      padding: 10px;
       margin-bottom: 10px;
       & > p:first-of-type{
         margin: 0;
