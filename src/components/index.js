@@ -287,8 +287,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
           trad = zhg[0];
           zhg = zhg[1];
 
-          let pin = word[0].match( /(\[.*\])/g ).map( val => val.replace(/\[|\]/g,'') );
-
+          let pin = word[0].match( /\[(.*?)\]/g ).map( val => val.replace(/\[|\]/g,'') );
           let zhu = toZhuyin(pin[0]);
           pin = tone(pin[0]).toLowerCase();
           pin = pin.split(" ");
@@ -453,7 +452,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
         activeSentence.current = {item: paragraph.sentences[index], index: index};
 
         activeSentence.current.item.classList.add('active');
-        window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2, behavior: 'smooth' });
+        window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2 + activeSentence.current.item.getBoundingClientRect().height/2, behavior: 'smooth' });
         /*set minimum duration*/
         const during = activeSentence.current.item.innerHTML.length * speed * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * speed * 1000 : 3000;
 

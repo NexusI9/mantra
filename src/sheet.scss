@@ -44,8 +44,8 @@ hr{
 }
 
 .ico{
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,6 +103,10 @@ button.squareButton {
     .ico{
       margin: auto;
     }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
 }
 
 #home{
