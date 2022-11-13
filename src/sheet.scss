@@ -310,6 +310,12 @@ button.squareButton {
   box-sizing: border-box;
   padding: 0 20%;
 
+  & > .blank{
+    display: block;
+    width: 100%;
+    height: 45vh;
+  }
+
   p{
     opacity: 0;
     transform: scale(0.8);

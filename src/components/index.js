@@ -287,12 +287,13 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
           trad = zhg[0];
           zhg = zhg[1];
 
-          let pin = word[0].match( /(?<=\[).+?(?=\])/ );
+          let pin = word[0].match( /(\[.*\])/g ).map( val => val.replace(/\[|\]/g,'') );
+
           let zhu = toZhuyin(pin[0]);
           pin = tone(pin[0]).toLowerCase();
           pin = pin.split(" ");
 
-          let trans = word[0].match( /(?<=\/).*/gm );
+          let trans = word[0].match( /(\/.*)/gm );
 
           trans = tone(trans[0]);
           trans = trans.split("/");
@@ -476,7 +477,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
         //get all paragraphs
         let pr = body.match(/<p>(.*?)<\/p>/g).map( (val) => {
-          return val.replace(/<\/?p>/g,''); 
+          return val.replace(/<\/?p>/g,'');
         });
 
 
@@ -532,7 +533,10 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
       mouseTimer = setTimeout(() => !lock && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
     }
     const onMouseUp = (e) => {
-      setActiveTimer(true);
+      if(activeParagraph.current.index === -1){
+        prevNext({item:'paragraph', direction: 'next'});
+      }
+      //setActiveTimer(true);
     }
 
     //---mouse: move---
@@ -544,7 +548,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
     //window.addEventListener('touchstart', onMouseDown);
 
     //---mouse: up---
-    //window.addEventListener('touchend', onMouseUp);
+    window.addEventListener('touchend', onMouseUp);
 
     //---keyboard---
     window.addEventListener('keydown', onKeyDown);
@@ -557,16 +561,13 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
       if(manual){ setManual();  }
     }
 
-    console.log(speed);
-
-
     return () => {
         window.removeEventListener('touchmove',preventScroll,false);
         window.removeEventListener('scroll',preventScroll,false);
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('mousemove', onMouseMove);
         //window.removeEventListener('touchstart', onMouseDown);
-        //window.removeEventListener('touchend', onMouseUp);
+        window.removeEventListener('touchend', onMouseUp);
         clearAllTimers();
     }
 
@@ -575,6 +576,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
   return(
     <div id='scene' {...doubleTap} style={{fontSize:`${fontSize}rem`}}>
+      <span className='blank'></span>
       { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
               { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className={'sentence ' +( (p === activeParagraph.current.index && s === activeSentence.current.index) ? 'active' : '')} key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }
