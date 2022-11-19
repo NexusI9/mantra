@@ -353,28 +353,6 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
   }
 
-  const doubleTap = useDoubleTap( e => {
-    // on Double tap
-    if(touchPos(e) === 'top'){ setManual({item:'paragraph', direction:'prev'}); }
-    else{ setManual({item:'paragraph', direction:'next'});  }
-  }, 300, {
-    //on Single tap
-    onSingleTap: (e) => {
-
-      switch(e.target.nodeName){
-        case 'P' :
-          startTranslation(e);
-        break;
-
-        default:
-          if(touchPos(e) === 'top'){ setManual({item:'sentence', direction:'prev'}); }
-          else{ setManual({item:'sentence', direction:'next'}); }
-        break;
-      }
-
-
-    }
-  });
   useEffect(() => {
 
     //--Load dico--
@@ -499,9 +477,8 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
 
     //---Events---
-    const preventScroll = (e) => {
-      e.stopPropagation();
-    }
+    const minSwipeDistance = 50
+    let touchStart, touchEnd;
     const onKeyDown = (e) => {
 
       if(lock){ return; }
@@ -512,42 +489,60 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
       }
     }
-    const onMouseDown = (e) => {
-
-      switch(e.target.nodeName){
-
-        case 'P':
-          startTranslation(e); //translate pointed words
-        break;
-
-        default:
-          setActiveTimer(false);
-
-      }
-
-
-      }
-    const onMouseMove = (e) => {
+    const onTouchStart = (e) => {
+      touchEnd=null; // otherwise the swipe is fired even with usual touch events
+      touchStart = e.targetTouches[0].clientY;
+    }
+    const onTouchMove = (e) => {
+      touchEnd = e.targetTouches[0].clientY;
+      //e.stopPropagation(); //prevent scroll
       clearAllTimers();
       mouseTimer = setTimeout(() => !lock && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
     }
-    const onMouseUp = (e) => {
-      if(activeParagraph.current.index === -1){
-        prevNext({item:'paragraph', direction: 'next'});
+    const onTouchEnd = (e) => {
+      if(!touchStart || !touchEnd){ return; }
+      const distance = touchStart - touchEnd;
+      const isTopSwipe = distance > minSwipeDistance;
+      const isBottomSwipe = distance < -minSwipeDistance;
+      if (isTopSwipe || isBottomSwipe){
+        if(isTopSwipe){
+          setManual({item:'sentence', direction:'next'});
+        }
+        if(isBottomSwipe){
+          setManual({item:'sentence', direction:'prev'}); 
+        }
       }
-      //setActiveTimer(true);
+    }
+
+    const onClick = (e) => {
+
+    switch(e.target.nodeName){
+      case 'P' :
+        startTranslation(e);
+        e.stopImmediatePropagation();
+      break;
+
+      default:
+    }
+
+    if(activeParagraph.current.index === -1){
+      prevNext({item:'paragraph', direction: 'next'});
+    }
+
+    if(e.detail === 2){
+      // on Double tap
+      if(touchPos(e) === 'top'){ setManual({item:'paragraph', direction:'prev'}); }
+      else{ setManual({item:'paragraph', direction:'next'});  }
+    }
+
+
     }
 
     //---mouse: move---
-    window.addEventListener('touchmove',preventScroll,false);
-    window.addEventListener('scroll',preventScroll,false);
-    window.addEventListener('mousemove', onMouseMove);
-
-    //---mouse: down---
-    //window.addEventListener('touchstart', onMouseDown);
-
-    //---mouse: up---
-    window.addEventListener('touchend', onMouseUp);
+    window.addEventListener('click', onClick);
+    window.addEventListener('touchmove',onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchstart', onTouchStart);
 
     //---keyboard---
     window.addEventListener('keydown', onKeyDown);
@@ -561,12 +556,12 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
     }
 
     return () => {
-        window.removeEventListener('touchmove',preventScroll,false);
-        window.removeEventListener('scroll',preventScroll,false);
+        window.removeEventListener('touchmove',onTouchMove);
+        window.removeEventListener('touchstart', onTouchStart);
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('click', onClick);
+
         window.removeEventListener('keydown', onKeyDown);
-        window.removeEventListener('mousemove', onMouseMove);
-        //window.removeEventListener('touchstart', onMouseDown);
-        window.removeEventListener('touchend', onMouseUp);
         clearAllTimers();
     }
 
@@ -574,7 +569,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
   }, [para, manual, lock]);
 
   return(
-    <div id='scene' {...doubleTap} style={{fontSize:`${fontSize}rem`}}>
+    <div id='scene' style={{fontSize:`${fontSize}rem`}}>
       <span className='blank'></span>
       { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
