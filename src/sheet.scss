@@ -330,8 +330,11 @@ button.squareButton {
       opacity: 1;
       transform: scale(1);
       & ~ *{
-        opacity: 0.3;
+        opacity: 0.1;
       }
+    }
+    &.neighbor{
+      opacity: 0.3;
     }
   }
 

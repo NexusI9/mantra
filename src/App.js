@@ -16,7 +16,7 @@ function App() {
   //reader
   const [lockReader, setLockReader] = useState(false);
   const [theme, setTheme] = useState('white');
-  const [fontSize, setSize] = useState(2.5);
+  const [fontSize, setSize] = useState(1.85);
   const [speed, setSpeed] = useState(0.4);
 
   useEffect( () => {

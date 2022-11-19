@@ -68,11 +68,11 @@ export const Settings = ({returnHome = () => 0, onQuit = () => 0, onStart = () =
   const sizeButton = [
     {
       label: '小',
-      size: 1.85
+      size: 1.6
     },
     {
       label: '中',
-      size: 2.5
+      size: 1.85
     },
     {
       label: '大',
@@ -176,7 +176,7 @@ export const PopUp = ({words, onQuit = () => 0 , onStart= () => 1}) => {
     </div>);
 }
 
-export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate = (e) => e, lock = false }) => {
+export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslate = (e) => e, lock = false }) => {
 
   //paragraph
 
@@ -424,13 +424,22 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
 
         //remove all active sentences
         const element = document.getElementsByClassName('sentence');
-        for(var sent of element){ sent.classList.remove('active'); }
+        for(var sent of element){
+          sent.classList.remove('active');
+          sent.classList.remove('neighbor'); 
+        }
 
         //set new active sentences
         activeSentence.current = {item: paragraph.sentences[index], index: index};
 
+        //css propreties
         activeSentence.current.item.classList.add('active');
-        window.scrollTo({top: activeSentence.current.item.getBoundingClientRect().top + window.scrollY - window.innerHeight/2 + activeSentence.current.item.getBoundingClientRect().height/2, behavior: 'smooth' });
+        if(paragraph.sentences[index-1]){ paragraph.sentences[index-1].classList.add('neighbor'); }
+        if(paragraph.sentences[index+1]){ paragraph.sentences[index+1].classList.add('neighbor'); }
+
+        const {top, height} = activeSentence.current.item.getBoundingClientRect();
+        const { scrollY, innerHeight} = window;
+        window.scrollTo({top: top + scrollY - innerHeight/2 + height/2, behavior: 'smooth' });
         /*set minimum duration*/
         const during = activeSentence.current.item.innerHTML.length * speed * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * speed * 1000 : 3000;
 
@@ -509,7 +518,7 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
           setManual({item:'sentence', direction:'next'});
         }
         if(isBottomSwipe){
-          setManual({item:'sentence', direction:'prev'}); 
+          setManual({item:'sentence', direction:'prev'});
         }
       }
     }
@@ -543,12 +552,10 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
     window.addEventListener('touchmove',onTouchMove);
     window.addEventListener('touchend', onTouchEnd);
     window.addEventListener('touchstart', onTouchStart);
-
     //---keyboard---
     window.addEventListener('keydown', onKeyDown);
 
     if(!para){ urlToHtml(url).then( result => setPara(result) );  }
-
     if(!lock){ prevNext(manual || {}); } //on unlocked: casual behavior
     else{  //on lock : clear timeout and flush manual command
       clearAllTimers();
@@ -556,11 +563,12 @@ export const Reader = ({url, speed=0.4, fontSize=2.5, theme='white', onTranslate
     }
 
     return () => {
+        //---mouse: move---
         window.removeEventListener('touchmove',onTouchMove);
         window.removeEventListener('touchstart', onTouchStart);
         window.removeEventListener('touchend', onTouchEnd);
         window.removeEventListener('click', onClick);
-
+        //---keyboard---
         window.removeEventListener('keydown', onKeyDown);
         clearAllTimers();
     }
