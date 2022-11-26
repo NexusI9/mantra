@@ -8,11 +8,11 @@ import { toZhuyin } from '../lib/pinyin-to-zhuyin.js';
 import { PinyinConverter } from '../lib/pinyin_converter.js';
 import { useDoubleTap } from 'use-double-tap';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 
 const SquareButton = ({name, label, onClick = () => 0}) => (
   <button className='squareButton' onClick={onClick}>{label && label}{name && <span className='ico' data-name={name}></span>}</button>
 );
-
 
 export const Homepage = ({onSubmit = (e) => e}) => {
 
@@ -183,6 +183,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
   const [para, setPara] = useState(); //array of paragraph
   const [activeTimer, setActiveTimer] = useState(!lock);
   const [manual, setManual] = useState();
+  const [searchParams, setSearchParams] = useSearchParams();
   const listPara = useRef([]);
 
   let activeSentence = useRef({item:null, index:0});
@@ -397,7 +398,8 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
             break;
 
             case 'prev':
-                activeSentence.current.index = ( activeSentence.current.index-1 < 0 )  ? 0 : activeSentence.current.index-1;
+
+                activeSentence.current.index = ( activeSentence.current.index-1 < 0 )  ? listPara.current[activeParagraph.current.index]?.sentences.length-1 : activeSentence.current.index-1;
             break;
 
           }
@@ -426,7 +428,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
         const element = document.getElementsByClassName('sentence');
         for(var sent of element){
           sent.classList.remove('active');
-          sent.classList.remove('neighbor'); 
+          sent.classList.remove('neighbor');
         }
 
         //set new active sentences
@@ -437,16 +439,25 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
         if(paragraph.sentences[index-1]){ paragraph.sentences[index-1].classList.add('neighbor'); }
         if(paragraph.sentences[index+1]){ paragraph.sentences[index+1].classList.add('neighbor'); }
 
+        //update url parameters
+        searchParams.set('paragraph', activeParagraph.current.index);
+        searchParams.set('sentence', activeSentence.current.index);
+        setSearchParams(searchParams);
+
         const {top, height} = activeSentence.current.item.getBoundingClientRect();
         const { scrollY, innerHeight} = window;
         window.scrollTo({top: top + scrollY - innerHeight/2 + height/2, behavior: 'smooth' });
+
+
         /*set minimum duration*/
         const during = activeSentence.current.item.innerHTML.length * speed * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * speed * 1000 : 3000;
+
 
         timeout = setTimeout( () => {
           clearTimeout(timeout);
           //loop through paragraph, if end of array return to 0
           if( index+1 === paragraph.sentences.length ){ read({paragraph: paragraph, index: 0 }); }
+
           else{ read({paragraph: paragraph, index: index+1 }); }
         }, during);
 
@@ -522,7 +533,6 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
         }
       }
     }
-
     const onClick = (e) => {
 
     switch(e.target.nodeName){
@@ -555,7 +565,10 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
     //---keyboard---
     window.addEventListener('keydown', onKeyDown);
 
-    if(!para){ urlToHtml(url).then( result => setPara(result) );  }
+    activeSentence.current.index = parseInt(searchParams.get('sentence'));
+    activeParagraph.current.index = parseInt(searchParams.get('paragraph'));
+
+    if(!para){ urlToHtml(url).then( result => setPara(result) ) }
     if(!lock){ prevNext(manual || {}); } //on unlocked: casual behavior
     else{  //on lock : clear timeout and flush manual command
       clearAllTimers();
@@ -581,7 +594,18 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
       <span className='blank'></span>
       { para && para.map( (paragraphs,p) =>
             <div className='paragraph' key={'para_'+p} ref={ el => listPara.current[p].paragraph = el }>
-              { paragraphs.map( (sentence,s) => <p ref={el => listPara.current[p].sentences[s] = el } className={'sentence ' +( (p === activeParagraph.current.index && s === activeSentence.current.index) ? 'active' : '')} key={"sentence"+Math.random()+sentence}>{sentence}</p> ) }
+              { paragraphs.map( (sentence,s) =>
+                <p
+                ref={el => listPara.current[p].sentences[s] = el }
+                className={'sentence ' + (
+                    (p === (parseInt(searchParams.get('paragraph')) ) )
+                    &&
+                    (s === (parseInt(searchParams.get('sentence')) ) )
+                   ? 'active' : '')}
+                key={"sentence"+Math.random()+sentence}>
+                {sentence}
+                </p>
+              )}
             </div>
       )}
     </div>

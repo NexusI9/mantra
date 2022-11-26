@@ -24,14 +24,25 @@ function App() {
     const body = document.querySelector('body');
     body.setAttribute('data-theme', theme);
     if(searchParams.get('article')){ setUrl(searchParams.get('article'));  }
-    if(url){ setSearchParams({article:url}); }
-
+    if(url){
+      searchParams.set('article',url);
+      if(!searchParams.get('sentence')){ searchParams.set('sentence',0); }
+      if(!searchParams.get('paragraph')){ searchParams.set('paragraph',-1); }
+      setSearchParams(searchParams);
+    }
 
   }, [theme, url]);
 
   return (
       <div id="wrapper">
-        {!url && <Homepage onSubmit={ (e) => setUrl(e) } /> }
+        {!url && <Homepage onSubmit={ (e) => {
+          searchParams.delete('article');
+          searchParams.delete('sentence');
+          searchParams.delete('paragraph');
+          setSearchParams(searchParams);
+          setUrl(e);
+        }
+      } /> }
         {url &&
           <Reader
           url={url}
@@ -47,8 +58,12 @@ function App() {
           onChangeSize = { e => setSize(e)  }
           onQuit={ () => setLockReader(false) }
           onStart={ () => setLockReader(true) }
-          returnHome={ () => { setUrl(); searchParams.delete('article');
-
+          returnHome={ () => {
+            searchParams.delete('article');
+            searchParams.delete('sentence');
+            searchParams.delete('paragraph');
+            setSearchParams(searchParams);
+            setUrl();
          }}
           />
         }
