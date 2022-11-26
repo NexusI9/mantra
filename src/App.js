@@ -1,5 +1,5 @@
 import './sheet.scss';
-import { Homepage, Reader, Settings, PopUp } from './components';
+import { Homepage, Reader, Settings, PopUp, PercentBar, PlayPause } from './components';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -44,14 +44,15 @@ function App() {
         }
       } /> }
         {url &&
+          <>
           <Reader
           url={url}
           onTranslate={ e => setTranslation(e) }
           fontSize = { fontSize }
           speed = { speed }
           lock={ lockReader }
-          /> }
-        {url &&
+          />
+
           <Settings
           onChangeTheme={ e => setTheme(e) }
           onChangeSpeed = { e => setSpeed(e)  }
@@ -66,7 +67,13 @@ function App() {
             setUrl();
          }}
           />
+
+          <PercentBar />
+          <PlayPause onChange={ (e) => setLockReader(e) }/>
+
+          </>
         }
+
         {translation &&
           <PopUp
           words={translation}

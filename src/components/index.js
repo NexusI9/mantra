@@ -43,11 +43,12 @@ export const InputLink = ({onSubmit = (e) => e}) => {
 
 }
 
+const SettingsButton = ({onClick = (e) => e, name}) => (
+  <span className='ico' onClick={onClick} data-name={name}></span>
+);
+
 export const Settings = ({returnHome = () => 0, onQuit = () => 0, onStart = () => 1, onChangeSpeed, onChangeSize, onChangeTheme}) => {
 
-  const SettingsButton = ({onClick = (e) => e, name}) => (
-    <span className='ico' onClick={onClick} data-name={name}></span>
-  );
 
   const [expand, setExpand] = useState(false);
   const themeDot = [
@@ -174,6 +175,49 @@ export const PopUp = ({words, onQuit = () => 0 , onStart= () => 1}) => {
       </div>
       </motion.div>
     </div>);
+}
+
+export const PlayPause = ({onChange = (e) => 0}) => {
+
+  const [play, setPlay] = useState(true);
+
+
+  return(
+    <div id='playPause_container'>
+      <SettingsButton onClick={() => { setPlay(!play); onChange(play); }} name={play ? 'pause' : 'play'}/>
+    </div>
+  );
+}
+
+export const PercentBar = () => {
+
+  const [percent, setPercent] = useState(0);
+
+  useEffect(() => {
+
+      const onScroll = () => {
+        var h = document.documentElement,
+            b = document.body,
+            st = 'scrollTop',
+            sh = 'scrollHeight';
+
+        var percent = (h[st]||b[st]) / ((h[sh]||b[sh]) - h.clientHeight) * 100;
+        setPercent(percent);
+      };
+
+      window.addEventListener('scroll', onScroll);
+
+      return () => {
+        window.removeEventListener('scroll', onScroll);
+      }
+
+  },[]);
+
+  return(
+    <div id='percentBar'>
+      <span style={{height:percent+'%'}}></span>
+    </div>
+  );
 }
 
 export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslate = (e) => e, lock = false }) => {
