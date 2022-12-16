@@ -69,7 +69,7 @@ function App() {
           />
 
           <PercentBar />
-          <PlayPause onChange={ (e) => setLockReader(e) }/>
+          {/*<PlayPause onChange={ (e) => setLockReader(e) }/>*/}
 
           </>
         }

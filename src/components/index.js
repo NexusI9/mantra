@@ -6,7 +6,6 @@ import grammarKeywords from '../data/grammarKeywordsMin.json';
 import ZhongwenDictionary from '../lib/zhongwendico.js';
 import { toZhuyin } from '../lib/pinyin-to-zhuyin.js';
 import { PinyinConverter } from '../lib/pinyin_converter.js';
-import { useDoubleTap } from 'use-double-tap';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 
@@ -480,7 +479,8 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
 
         //css propreties
         activeSentence.current.item.classList.add('active');
-        if(paragraph.sentences[index-1]){ paragraph.sentences[index-1].classList.add('neighbor'); }
+
+        if(paragraph.sentences[index-1]){  paragraph.sentences[index-1].classList.add('neighbor'); }
         if(paragraph.sentences[index+1]){ paragraph.sentences[index+1].classList.add('neighbor'); }
 
         //update url parameters
@@ -497,6 +497,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
         const during = activeSentence.current.item.innerHTML.length * speed * 1000 > 3000 ? activeSentence.current.item.innerHTML.length * speed * 1000 : 3000;
 
 
+       /*
         timeout = setTimeout( () => {
           clearTimeout(timeout);
           //loop through paragraph, if end of array return to 0
@@ -504,6 +505,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
 
           else{ read({paragraph: paragraph, index: index+1 }); }
         }, during);
+        */
 
     }
 
@@ -529,7 +531,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
         pr = pr.filter(entry => entry.trim() !== '' );
 
         //separate sentences within paragraphs
-        pr = pr.map( item => item.split(/。|、|！|，/gm) );
+        pr = pr.map( item => item.split(/。|、|！|，|；/gm) );
 
         pr = pr.map( para => para.filter(entry => entry.trim() !== '' ) );
 
@@ -561,7 +563,7 @@ export const Reader = ({url, speed=0.4, fontSize=1.85, theme='white', onTranslat
       touchEnd = e.targetTouches[0].clientY;
       //e.stopPropagation(); //prevent scroll
       clearAllTimers();
-      mouseTimer = setTimeout(() => !lock && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
+      //mouseTimer = setTimeout(() => !lock && read({paragraph: activeParagraph.current.item, index: activeSentence.current.index }), 300);
     }
     const onTouchEnd = (e) => {
       if(!touchStart || !touchEnd){ return; }
